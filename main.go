@@ -67,6 +67,8 @@ func main() {
 			} else {
 				outputTemp, err := runCommand(w, r, conf, command, dir, alloutput)
 				if err != nil {
+					w.WriteHeader(400)
+					fmt.Fprintf(w, fmt.Sprint(err))
 					return
 				}
 				alloutput += outputTemp
@@ -100,20 +102,32 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
 			return "", err
 		}
-		uid, _ := strconv.ParseUint(usr.Uid, 10, 32)
+		uid, err := strconv.ParseUint(usr.Uid, 10, 32)
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+			return "", err
+		}
 		gid := usr.Gid
 		userGroup := ""
 		if val, ok := command["user-group"]; ok && len(val[0]) > 0 {
 			userGroup = command["user-group"][0]
 		}
 		if conf.UserGroup != "root" && userGroup != "root" {
+			var grp *user.Group
 			if userGroup != "" {
-				grp, _ := user.LookupGroup(userGroup)
-				gid = grp.Gid
+				grp, err = user.LookupGroup(userGroup)
+
 			} else if conf.UserGroup != "" {
-				grp, _ := user.LookupGroup(conf.UserGroup)
-				gid = grp.Gid
+				grp, err = user.LookupGroup(conf.UserGroup)
 			}
+
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+				return "", err
+			}
+			gid = grp.Gid
 		}
 		Gid, _ := strconv.Atoi(gid)
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
