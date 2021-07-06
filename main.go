@@ -39,6 +39,7 @@ func main() {
 	viper.SetConfigName("deployer-config")
 	viper.AddConfigPath(dir + "/.")
 	viper.SetConfigType("json")
+	viper.WatchConfig()
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			err = viper.SafeWriteConfig()
