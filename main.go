@@ -67,8 +67,6 @@ func main() {
 			} else {
 				outputTemp, err := runCommand(w, r, conf, command, dir, alloutput)
 				if err != nil {
-					w.WriteHeader(400)
-					fmt.Fprintf(w, fmt.Sprint(err))
 					return
 				}
 				alloutput += outputTemp
@@ -117,7 +115,6 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 			var grp *user.Group
 			if userGroup != "" {
 				grp, err = user.LookupGroup(userGroup)
-
 			} else if conf.UserGroup != "" {
 				grp, err = user.LookupGroup(conf.UserGroup)
 			}
@@ -127,7 +124,10 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 				fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
 				return "", err
 			}
-			gid = grp.Gid
+
+			if grp != nil {
+				gid = grp.Gid
+			}
 		}
 		Gid, _ := strconv.Atoi(gid)
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
