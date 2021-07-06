@@ -13,6 +13,15 @@ import (
 	"syscall"
 )
 
+type Conf struct {
+	Host      string
+	Port      int
+	Path      string
+	User      string
+	UserGroup string
+	Commands  []map[string][]string
+}
+
 func main() {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -23,7 +32,8 @@ func main() {
 	viper.SetDefault("port", "8083")
 	viper.SetDefault("path", "/deploy/123456789/abcdefg")
 	viper.SetDefault("user", "root")
-	viper.SetDefault("commands", []map[string][]string{{"name": {"echo"}, "arg": {"Hello", " ", "world!"}, "async": {"false"}, "user": {"root"}}})
+	viper.SetDefault("user-group", "root")
+	viper.SetDefault("commands", []map[string][]string{{"name": {"echo"}, "arg": {"Hello", " ", "world!"}, "async": {"false"}, "user": {"root"}, "user-group": {"root"}}})
 	/* END Default options */
 
 	viper.SetConfigName("deployer-config")
@@ -42,14 +52,6 @@ func main() {
 		}
 	}
 
-	type Conf struct {
-		Host     string
-		Port     int
-		Path     string
-		User     string
-		Commands []map[string][]string
-	}
-
 	http.HandleFunc(viper.GetString("path"), func(w http.ResponseWriter, r *http.Request) {
 		alloutput := ""
 		var conf Conf
@@ -60,44 +62,68 @@ func main() {
 			return
 		}
 		for _, command := range conf.Commands {
-			cmd := exec.Command(command["name"][0], command["arg"]...)
-			cmd.Dir = dir
-			if conf.User != "root" && command["user"][0] != "root" {
-				var usr *user.User
-				if command["user"][0] != "" {
-					usr, err = user.Lookup(command["user"][0])
-				} else if conf.User != "" {
-					usr, err = user.Lookup(conf.User)
-				}
-
+			if val, ok := command["async"]; ok && val[0] == "true" {
+				go runCommand(w, r, conf, command, dir, alloutput)
+			} else {
+				outputTemp, err := runCommand(w, r, conf, command, dir, alloutput)
 				if err != nil {
-					w.WriteHeader(400)
-					fmt.Fprintf(w, fmt.Sprint(err))
 					return
 				}
-
-				uid, _ := strconv.ParseUint(usr.Uid, 10, 32)
-				gid, _ := strconv.ParseUint(usr.Gid, 10, 32)
-
-				cmd.SysProcAttr = &syscall.SysProcAttr{}
-				cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+				alloutput += outputTemp
 			}
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, fmt.Sprint(err)+": "+string(output))
-				return
-			}
-			alloutput += string(output)
 		}
-		/*cmd := exec.Command("git", "-C", dir, "pull", "https://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@github.com/faradey/indemorio-www.git", "master")
-		cmd = exec.Command("composer", "install")
-		cmd = exec.Command("php", dir+"/bin/magento", "deploy:mode:set", "developer")
-		cmd = exec.Command("php", dir+"/bin/magento", "s:up")
-		cmd = exec.Command("php", dir+"/bin/magento", "deploy:mode:set", "production")*/
 
 		fmt.Fprintf(w, alloutput)
 	})
 
 	log.Fatal(http.ListenAndServe(viper.GetString("host")+":"+viper.GetString("port"), nil))
+}
+
+func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[string][]string, dir, alloutput string) (string, error) {
+	cmd := exec.Command(command["name"][0], command["arg"]...)
+	cmd.Dir = dir
+	userOs := ""
+	if val, ok := command["user"]; ok && len(val[0]) > 0 {
+		userOs = command["user"][0]
+	}
+	var err error
+	if conf.User != "root" && userOs != "root" {
+		var usr *user.User
+		if userOs != "" {
+			usr, err = user.Lookup(userOs)
+		} else if conf.User != "" {
+			usr, err = user.Lookup(conf.User)
+		}
+
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+			return "", err
+		}
+		uid, _ := strconv.ParseUint(usr.Uid, 10, 32)
+		gid := usr.Gid
+		userGroup := ""
+		if val, ok := command["user-group"]; ok && len(val[0]) > 0 {
+			userGroup = command["user-group"][0]
+		}
+		if conf.UserGroup != "root" && userGroup != "root" {
+			if userGroup != "" {
+				grp, _ := user.LookupGroup(userGroup)
+				gid = grp.Gid
+			} else if conf.UserGroup != "" {
+				grp, _ := user.LookupGroup(conf.UserGroup)
+				gid = grp.Gid
+			}
+		}
+		Gid, _ := strconv.Atoi(gid)
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(Gid)}
+	}
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		w.WriteHeader(400)
+		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err)+": "+string(output))
+		return "", err
+	}
+	return fmt.Sprint(cmd) + "\n" + string(output) + "\n", nil
 }
