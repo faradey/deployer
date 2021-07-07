@@ -88,52 +88,55 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 		userOs = command["user"][0]
 	}
 	var err error
-	if conf.User != "root" && userOs != "root" {
-		var usr *user.User
-		if userOs != "" {
-			usr, err = user.Lookup(userOs)
-		} else if conf.User != "" {
-			usr, err = user.Lookup(conf.User)
-		}
-
-		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
-			return "", err
-		}
-		uid, err := strconv.ParseUint(usr.Uid, 10, 32)
-		if err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
-			return "", err
-		}
-		gid := usr.Gid
-		userGroup := ""
-		if val, ok := command["user-group"]; ok && len(val[0]) > 0 {
-			userGroup = command["user-group"][0]
-		}
-		if conf.UserGroup != "root" && userGroup != "root" {
-			var grp *user.Group
-			if userGroup != "" {
-				grp, err = user.LookupGroup(userGroup)
-			} else if conf.UserGroup != "" {
-				grp, err = user.LookupGroup(conf.UserGroup)
-			}
-
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
-				return "", err
-			}
-
-			if grp != nil {
-				gid = grp.Gid
-			}
-		}
-		Gid, _ := strconv.Atoi(gid)
-		cmd.SysProcAttr = &syscall.SysProcAttr{}
-		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(Gid)}
+	currentUser, _ := user.Current()
+	userName := currentUser.Username
+	var usr *user.User
+	if userOs != "" {
+		usr, err = user.Lookup(userOs)
+	} else if conf.User != "" {
+		usr, err = user.Lookup(conf.User)
+	} else {
+		usr, err = user.Lookup(userName)
 	}
+
+	if err != nil {
+		w.WriteHeader(400)
+		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+		return "", err
+	}
+	uid, err := strconv.ParseUint(usr.Uid, 10, 32)
+	if err != nil {
+		w.WriteHeader(400)
+		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+		return "", err
+	}
+	gid := usr.Gid
+	userGroup := ""
+	if val, ok := command["user-group"]; ok && len(val[0]) > 0 {
+		userGroup = command["user-group"][0]
+	}
+	if conf.UserGroup != "root" && userGroup != "root" {
+		var grp *user.Group
+		if userGroup != "" {
+			grp, err = user.LookupGroup(userGroup)
+		} else if conf.UserGroup != "" {
+			grp, err = user.LookupGroup(conf.UserGroup)
+		}
+
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+			return "", err
+		}
+
+		if grp != nil {
+			gid = grp.Gid
+		}
+	}
+	Gid, _ := strconv.Atoi(gid)
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(Gid)}
+	alloutput += "\n" + "The command is executed by user " + userName + "\n"
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(400)
