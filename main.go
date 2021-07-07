@@ -98,13 +98,12 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 		usr, err = user.Lookup(currentUser.Username)
 	}
 
-	userName := usr.Username
-
 	if err != nil {
 		w.WriteHeader(400)
 		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
 		return "", err
 	}
+	userName := usr.Username
 	uid, err := strconv.ParseUint(usr.Uid, 10, 32)
 	if err != nil {
 		w.WriteHeader(400)
