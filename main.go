@@ -89,15 +89,16 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 	}
 	var err error
 	currentUser, _ := user.Current()
-	userName := currentUser.Username
 	var usr *user.User
 	if userOs != "" {
 		usr, err = user.Lookup(userOs)
 	} else if conf.User != "" {
 		usr, err = user.Lookup(conf.User)
 	} else {
-		usr, err = user.Lookup(userName)
+		usr, err = user.Lookup(currentUser.Username)
 	}
+
+	userName := usr.Username
 
 	if err != nil {
 		w.WriteHeader(400)
