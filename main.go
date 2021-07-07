@@ -136,12 +136,11 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 	Gid, _ := strconv.Atoi(gid)
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(Gid)}
-	alloutput += "\n" + "The command is executed by user " + userName + "\n"
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(400)
 		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err)+": "+string(output))
 		return "", err
 	}
-	return fmt.Sprint(cmd) + "\n" + string(output) + "\n", nil
+	return "\n" + "The command is executed by user " + userName + "\n" + fmt.Sprint(cmd) + "\n" + string(output) + "\n", nil
 }
