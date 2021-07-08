@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/viper"
 	"log"
@@ -18,7 +19,7 @@ type Conf struct {
 	Port      int
 	Path      string
 	User      string
-	UserGroup string
+	UserGroup string `mapstructure:"user-group"`
 	Commands  []map[string][]string
 }
 
@@ -33,7 +34,7 @@ func main() {
 	viper.SetDefault("path", "/deploy/123456789/abcdefg")
 	viper.SetDefault("user", "root")
 	viper.SetDefault("user-group", "root")
-	viper.SetDefault("commands", []map[string][]string{{"name": {"echo"}, "arg": {"Hello", " ", "world!"}, "async": {"false"}, "user": {"root"}, "user-group": {"root"}}})
+	viper.SetDefault("commands", []map[string][]string{{"name": {"echo"}, "arg": {"Hello", " ", "world!"}, "async": {"false"}, "user": {"root"}, "user-group": {"root"}, "try": {"10"}}})
 	/* END Default options */
 
 	viper.SetConfigName("deployer-config")
@@ -81,46 +82,59 @@ func main() {
 }
 
 func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[string][]string, dir, alloutput string) (string, error) {
-	cmd := exec.Command(command["name"][0], command["arg"]...)
-	cmd.Dir = dir
-	userOs := ""
-	if val, ok := command["user"]; ok && len(val[0]) > 0 {
-		userOs = command["user"][0]
-	}
 	var err error
-	currentUser, _ := user.Current()
-	var usr *user.User
-	if userOs != "" {
-		usr, err = user.Lookup(userOs)
-	} else if conf.User != "" {
-		usr, err = user.Lookup(conf.User)
-	} else {
-		usr, err = user.Lookup(currentUser.Username)
+	tryCount := 1
+	if val, ok := command["try"]; ok && len(val[0]) > 0 {
+		tryCount, err = strconv.Atoi(command["try"][0])
+		if err != nil {
+			tryCount = 1
+		}
 	}
 
-	if err != nil {
-		w.WriteHeader(400)
-		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
-		return "", err
-	}
-	userName := usr.Username
-	uid, err := strconv.ParseUint(usr.Uid, 10, 32)
-	if err != nil {
-		w.WriteHeader(400)
-		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
-		return "", err
-	}
-	gid := usr.Gid
-	userGroup := ""
-	if val, ok := command["user-group"]; ok && len(val[0]) > 0 {
-		userGroup = command["user-group"][0]
-	}
-	if conf.UserGroup != "root" && userGroup != "root" {
+	for i := 0; i < tryCount; i++ {
+		cmd := exec.Command(command["name"][0], command["arg"]...)
+		cmd.Dir = dir
+		userOs := ""
+		if val, ok := command["user"]; ok && len(val[0]) > 0 {
+			userOs = command["user"][0]
+		}
+		currentUser, _ := user.Current()
+		var usr *user.User
+		if userOs != "" {
+			usr, err = user.Lookup(userOs)
+		} else if conf.User != "" {
+			usr, err = user.Lookup(conf.User)
+		} else {
+			usr, err = user.Lookup(currentUser.Username)
+		}
+
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+			return "", err
+		}
+		userName := usr.Username
+		uid, err := strconv.ParseUint(usr.Uid, 10, 32)
+		if err != nil {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err))
+			return "", err
+		}
+		gid := usr.Gid
+		userGroup := ""
+		if val, ok := command["user-group"]; ok && len(val[0]) > 0 {
+			userGroup = command["user-group"][0]
+		}
 		var grp *user.Group
 		if userGroup != "" {
 			grp, err = user.LookupGroup(userGroup)
 		} else if conf.UserGroup != "" {
 			grp, err = user.LookupGroup(conf.UserGroup)
+		} else {
+			grps, err := currentUser.GroupIds()
+			if err == nil {
+				grp, err = user.LookupGroupId(grps[0])
+			}
 		}
 
 		if err != nil {
@@ -131,16 +145,23 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 
 		if grp != nil {
 			gid = grp.Gid
+			userGroup = grp.Name
 		}
+		Gid, _ := strconv.Atoi(gid)
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(Gid)}
+		output, err := cmd.CombinedOutput()
+		userNGD := "\n" + "The command is executed by user " + userName + ":" + userGroup + "\n"
+		if err != nil {
+			if tryCount != i+1 {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, alloutput+userNGD+fmt.Sprint(cmd)+"\n"+fmt.Sprint(err)+": "+string(output))
+				return "", err
+			} else {
+				continue
+			}
+		}
+		return userNGD + fmt.Sprint(cmd) + "\n" + string(output) + "\n", nil
 	}
-	Gid, _ := strconv.Atoi(gid)
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
-	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(Gid)}
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		w.WriteHeader(400)
-		fmt.Fprintf(w, alloutput+"\n"+fmt.Sprint(err)+": "+string(output))
-		return "", err
-	}
-	return "\n" + "The command is executed by user " + userName + "\n" + fmt.Sprint(cmd) + "\n" + string(output) + "\n", nil
+	return "", errors.New("something went wrong")
 }
