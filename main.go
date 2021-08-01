@@ -28,6 +28,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	/*f, err := os.OpenFile(dir+"/deployer_errors.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening log file: %v", err)
+	}
+
+	defer f.Close()
+
+	log.SetOutput(f)*/
+
 	/* Default options */
 	viper.SetDefault("host", "")
 	viper.SetDefault("port", "8083")
@@ -77,7 +87,7 @@ func main() {
 
 		fmt.Fprintf(w, alloutput)
 	})
-
+	log.Println("Start Listener Host: " + viper.GetString("host") + " and Port: " + viper.GetString("port"))
 	log.Fatal(http.ListenAndServe(viper.GetString("host")+":"+viper.GetString("port"), nil))
 }
 
@@ -153,7 +163,7 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 		output, err := cmd.CombinedOutput()
 		userNGD := "\n" + "The command is executed by user " + userName + ":" + userGroup + "\n"
 		if err != nil {
-			if tryCount != i+1 {
+			if tryCount == i+1 {
 				w.WriteHeader(400)
 				fmt.Fprintf(w, alloutput+userNGD+fmt.Sprint(cmd)+"\n"+fmt.Sprint(err)+": "+string(output))
 				return "", err
@@ -163,5 +173,7 @@ func runCommand(w http.ResponseWriter, r *http.Request, conf Conf, command map[s
 		}
 		return userNGD + fmt.Sprint(cmd) + "\n" + string(output) + "\n", nil
 	}
+	w.WriteHeader(400)
+	fmt.Fprintf(w, "something went wrong")
 	return "", errors.New("something went wrong")
 }
