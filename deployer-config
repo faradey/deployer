@@ -1,0 +1,13 @@
+HOST
+PORT 8083
+PATH /deploy/123456789/abcdefg
+USER
+USER_GROUP
+TRY 1
+RUN echo "Hello world!"
+RUN id
+ASYNC_GROUP_START
+RUN echo "Hello Async Group"
+RUN echo "The End Async Group"
+ASYNC_GROUP_END
+RUN echo "The End"

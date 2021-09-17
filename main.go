@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/faradey/deployer/commands"
 	"github.com/faradey/deployer/parser"
-	"github.com/faradey/deployer/theend"
+	"github.com/faradey/deployer/responser"
 	"log"
 	"net/http"
 	"os"
@@ -55,34 +55,33 @@ func main() {
 		}
 	}
 
-	var AllOutput theend.ResponseTheEnd
-
 	http.HandleFunc(urlPath, func(w http.ResponseWriter, r *http.Request) {
-		AllOutput = theend.ResponseTheEnd{}
+		output := new(responser.ResponseStruct)
 		commander := new(commands.Commander)
+		commander.Output = output
 		var usr *user.User
 		usr, _ = user.Current()
 		var uid uint64
 		uid, err = strconv.ParseUint(usr.Uid, 10, 32)
 		if err != nil {
-			AllOutput.SetMessage("An error occured while getting the user id by name " + usr.Username)
-			AllOutput.TheEnd(w)
+			output.SetMessage("An error occured while getting the user id by name " + usr.Username)
+			output.SendError(w)
 		}
 		var gid uint64
 		userGroups, err := usr.GroupIds()
 		if err != nil {
-			AllOutput.SetMessage("For the user named " + usr.Username + ", it was not possible to get the list of groups")
-			AllOutput.TheEnd(w)
+			output.SetMessage("For the user named " + usr.Username + ", it was not possible to get the list of groups")
+			output.SendError(w)
 		}
 		userGroup, err := user.LookupGroupId(userGroups[0])
 		if err != nil {
-			AllOutput.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group")
-			AllOutput.TheEnd(w)
+			output.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group")
+			output.SendError(w)
 		}
 		gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
 		if err != nil {
-			AllOutput.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
-			AllOutput.TheEnd(w)
+			output.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
+			output.SendError(w)
 		}
 
 		runTry := 1
@@ -95,13 +94,13 @@ func main() {
 				if userName != "" {
 					usr, err = user.Lookup(userName)
 					if err != nil {
-						AllOutput.SetMessage("The user with the name " + userName + " is not in the system")
-						AllOutput.TheEnd(w)
+						output.SetMessage("The user with the name " + userName + " is not in the system")
+						output.SendError(w)
 					}
 					uid, err = strconv.ParseUint(usr.Uid, 10, 32)
 					if err != nil {
-						AllOutput.SetMessage("An error occured while getting the user id by name " + userName)
-						AllOutput.TheEnd(w)
+						output.SetMessage("An error occured while getting the user id by name " + userName)
+						output.SendError(w)
 					}
 				}
 			case "user_group":
@@ -109,20 +108,20 @@ func main() {
 				if userGroupName != "" {
 					userGroup, err := user.LookupGroup(userGroupName)
 					if err != nil {
-						AllOutput.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group")
-						AllOutput.TheEnd(w)
+						output.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group")
+						output.SendError(w)
 					}
 					gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
 					if err != nil {
-						AllOutput.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
-						AllOutput.TheEnd(w)
+						output.SetMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
+						output.SendError(w)
 					}
 				}
 			case "try":
 				runTry, err = strconv.Atoi(row.Data)
 				if err != nil {
-					AllOutput.SetMessage("Option TRY is specified incorrectly")
-					AllOutput.TheEnd(w)
+					output.SetMessage("Option TRY is specified incorrectly")
+					output.SendError(w)
 				}
 			case "async_group_start":
 				asyncGroup = true
@@ -130,34 +129,13 @@ func main() {
 				asyncGroup = false
 				commander.RunAsync()
 			case "run":
-				commander.Runner()
+				if strings.TrimSpace(row.Data) != "" {
+					commander.Runner(strings.TrimSpace(row.Data), uid, gid, runTry, asyncGroup)
+				}
 			}
 		}
-		/*
 
-			ch := make(chan CommandResponse)
-			for _, command := range conf.Commands {
-				if val, ok := command["async"]; ok && val[0] == "true" {
-					go runCommand(w, r, conf, command, dir, alloutput)
-				} else {
-					outputTemp, err := runCommand(w, r, conf, command, dir, alloutput)
-					if err != nil {
-						return
-					}
-					alloutput += outputTemp
-				}
-			}
-			i := 0
-			for loop := true; loop; {
-				select {
-				case msg := <-ch:
-					fmt.Println(msg)
-					i++
-					loop = false
-				}
-			}
-
-			fmt.Fprintf(w, alloutput)*/
+		output.Finish(w)
 	})
 	log.Println("Start Listener Host: " + host + " and Port: " + port)
 	log.Fatal(http.ListenAndServe(host+":"+port, nil))

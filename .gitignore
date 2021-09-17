@@ -3,10 +3,11 @@
 !/go.mod
 !/go.sum
 !/main.go
-!/theend
-!/theend/theend.go
+!/responser
+!/responser/responser.go
 !/parser
 !/parser/config.go
 !/commands
 !/commands/commands.go
+!/deployer-config
 

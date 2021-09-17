@@ -1,10 +1,10 @@
 package commands
 
-import "github.com/faradey/deployer/theend"
+import "github.com/faradey/deployer/responser"
 
 type Commander struct {
 	AsyncCommands []CommandStruct
-	Output        theend.ResponseTheEnd
+	Output        *responser.ResponseStruct
 }
 
 type CommandStruct struct {
@@ -26,7 +26,7 @@ func (t *Commander) Runner(commandStr string, uid, gid uint64, runTry int, async
 func (t *Commander) RunAsync() {
 	if len(t.AsyncCommands) > 0 {
 		for _, command := range t.AsyncCommands {
-
+			run(command)
 		}
 	}
 }
