@@ -1,6 +1,7 @@
 HOST
 PORT 8083
 PATH /deploy/123456789/abcdefg
+SHELL bash
 USER
 USER_GROUP
 TRY 1

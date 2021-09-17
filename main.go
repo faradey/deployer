@@ -42,6 +42,7 @@ func main() {
 	host := ""
 	port := ""
 	urlPath := ""
+	shell := "bash"
 
 	config = parser.GetConfig(dir)
 	for _, row := range config {
@@ -52,6 +53,10 @@ func main() {
 			port = strings.TrimSpace(row.Data)
 		case "path":
 			urlPath = strings.TrimSpace(row.Data)
+		case "shell":
+			if strings.TrimSpace(row.Data) != "" {
+				shell = strings.TrimSpace(row.Data)
+			}
 		}
 	}
 
@@ -59,6 +64,7 @@ func main() {
 		output := new(responser.ResponseStruct)
 		commander := new(commands.Commander)
 		commander.Output = output
+		commander.Shell = shell
 		var usr *user.User
 		usr, _ = user.Current()
 		var uid uint64
