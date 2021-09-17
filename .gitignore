@@ -3,4 +3,10 @@
 !/go.mod
 !/go.sum
 !/main.go
+!/theend
+!/theend/theend.go
+!/parser
+!/parser/config.go
+!/commands
+!/commands/commands.go
 
