@@ -7,9 +7,11 @@ CD .
 TRY 1
 RUN echo "Hello world!"
 RUN id
+ASYNC_RUN id && ls
 ASYNC_GROUP_START
 RUN echo "Hello Async Group"
 RUN ls && cd ../ && ls
 RUN echo "The End Async Group"
 ASYNC_GROUP_END
-RUN echo "The End"
+RUN echo "The\
+ End"

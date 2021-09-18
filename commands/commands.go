@@ -20,6 +20,7 @@ type CommandStruct struct {
 	Try     int
 	Shell   string
 	Cd      string
+	Async   bool
 	tried   int
 	result  bool
 }
@@ -27,6 +28,8 @@ type CommandStruct struct {
 func (t *Commander) Runner(command *CommandStruct, asyncGroup bool) {
 	if asyncGroup {
 		t.AsyncCommands = append(t.AsyncCommands, command)
+	} else if command.Async {
+		go t.run(command)
 	} else {
 		t.run(command)
 	}

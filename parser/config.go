@@ -38,17 +38,16 @@ func getLines(dir string) []string {
 	}
 	defer file.Close()
 
-	i := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if line[len(line)-2:] != "/" {
-			rows = append(rows, line)
-			i++
-		} else {
-			rows[i] += line[:len(line)-2]
+		if strings.TrimSpace(line[:1]) != "#" {
+			if len(rows) > 0 && rows[len(rows)-1][len(rows[len(rows)-1])-1:] == "\\" {
+				rows[len(rows)-1] = rows[len(rows)-1][:len(rows[len(rows)-1])-1] + line
+			} else {
+				rows = append(rows, line)
+			}
 		}
-
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)

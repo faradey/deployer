@@ -149,6 +149,12 @@ func main() {
 					commandAttributes.Command = rowData
 					commander.Runner(commandAttributes, asyncGroup)
 				}
+			case "async_run":
+				if rowData != "" {
+					commandAttributes.Command = rowData
+					commandAttributes.Async = true
+					commander.Runner(commandAttributes, false)
+				}
 			}
 		}
 
