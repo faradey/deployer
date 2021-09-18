@@ -10,4 +10,5 @@
 !/commands
 !/commands/commands.go
 !/deployer-config
+!deployer
 
