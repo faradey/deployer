@@ -42,8 +42,9 @@ func getLines(dir string) []string {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.TrimSpace(line[:1]) != "#" {
-			if len(rows) > 0 && rows[len(rows)-1][len(rows[len(rows)-1])-1:] == "\\" {
-				rows[len(rows)-1] = rows[len(rows)-1][:len(rows[len(rows)-1])-1] + line
+			rl := len(rows)
+			if rl > 0 && rows[rl-1][len(rows[rl-1])-1:] == "\\" {
+				rows[rl-1] = rows[rl-1][:len(rows[rl-1])-1] + line
 			} else {
 				rows = append(rows, line)
 			}
