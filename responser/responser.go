@@ -15,8 +15,8 @@ func (output *ResponseStruct) SendError(w http.ResponseWriter) {
 	fmt.Fprintf(w, output.Message)
 }
 
-func (output *ResponseStruct) SetMessage(str string) {
-	output.Message += str
+func (output *ResponseStruct) AddMessage(str string) {
+	output.Message += str + "\n"
 }
 
 func (output *ResponseStruct) Finish(w http.ResponseWriter) {
