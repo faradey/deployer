@@ -9,6 +9,8 @@
 !/parser/config.go
 !/commands
 !/commands/commands.go
-!/deployer-config
+!/server
+!/server/server.go
+!/deployer-config.sample
 !deployer
 

@@ -30,7 +30,7 @@ func GetConfig(dir string) []ConfigRow {
 }
 
 func getLines(dir string) []string {
-	fileName := "deployer-config"
+	fileName := "deployer-config.sample"
 	var rows []string
 	file, err := os.Open(dir + "/" + fileName)
 	if err != nil {
