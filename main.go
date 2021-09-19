@@ -13,11 +13,6 @@ import (
 	"strings"
 )
 
-type CommandResponse struct {
-	Status  bool
-	Message string
-}
-
 var config []parser.ConfigRow
 
 func main() {
@@ -25,15 +20,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	/*f, err := os.OpenFile(dir+"/deployer_errors.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening log file: %v", err)
-	}
-
-	defer f.Close()
-
-	log.SetOutput(f)*/
 
 	host := ""
 	port := ""
@@ -76,20 +62,20 @@ func main() {
 	if err != nil {
 		panic("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
 	}
+	countTry := 1
+	cd := ""
 
 	http.HandleFunc(urlPath, func(w http.ResponseWriter, r *http.Request) {
 		output := new(responser.ResponseStruct)
 		commander := new(commands.Commander)
 		commander.Output = output
+		commander.Channel = make(chan bool, len(config))
 		asyncGroup := false
+		countRunCommands := 0
 
 		for _, row := range config {
 			commandAttributes := commands.GetAttributesStruct()
 			commandAttributes.Shell = shell
-			commandAttributes.Try = 1
-			commandAttributes.Cd = ""
-			commandAttributes.Uid = uid
-			commandAttributes.Gid = gid
 
 			rowData := strings.TrimSpace(row.Data)
 			switch strings.ToLower(row.Name) {
@@ -104,7 +90,7 @@ func main() {
 							output.SendError(w)
 							return
 						}
-						commandAttributes.Uid, err = strconv.ParseUint(usr.Uid, 10, 32)
+						uid, err = strconv.ParseUint(usr.Uid, 10, 32)
 						if err != nil {
 							output.AddMessage("An error occured while getting the user id by name " + userName)
 							output.SendError(w)
@@ -120,7 +106,7 @@ func main() {
 									output.SendError(w)
 									return
 								}
-								commandAttributes.Gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
+								gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
 								if err != nil {
 									output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
 									output.SendError(w)
@@ -131,29 +117,54 @@ func main() {
 					}
 				}
 			case "try":
-				commandAttributes.Try, err = strconv.Atoi(rowData)
+				countTry, err = strconv.Atoi(rowData)
 				if err != nil {
 					output.AddMessage("Option TRY is specified incorrectly")
 					output.SendError(w)
 					return
 				}
 			case "cd":
-				commandAttributes.Cd = rowData
+				cd = rowData
 			case "async_group_start":
 				asyncGroup = true
+				commander.CreateAsyncGroup()
 			case "async_group_end":
 				asyncGroup = false
 				commander.RunAsyncCommands()
 			case "run":
 				if rowData != "" {
+					countRunCommands++
 					commandAttributes.Command = rowData
+					commandAttributes.Try = countTry
+					commandAttributes.Cd = cd
+					commandAttributes.Uid = uid
+					commandAttributes.Gid = gid
 					commander.Runner(commandAttributes, asyncGroup)
 				}
 			case "async_run":
 				if rowData != "" {
+					countRunCommands++
 					commandAttributes.Command = rowData
 					commandAttributes.Async = true
+					commandAttributes.Try = countTry
+					commandAttributes.Cd = cd
+					commandAttributes.Uid = uid
+					commandAttributes.Gid = gid
 					commander.Runner(commandAttributes, false)
+				}
+			}
+		}
+
+		if countRunCommands > 0 {
+			loop := true
+			i := 0
+			for loop {
+				select {
+				case <-commander.Channel:
+					i++
+					if i >= countRunCommands {
+						loop = false
+					}
 				}
 			}
 		}

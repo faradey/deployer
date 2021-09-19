@@ -6,6 +6,9 @@ USER vitalij vitalij
 CD .
 TRY 1
 RUN echo "Hello world!"
+USER root root
+ASYNC_RUN find ~/ -type f -name "*d.txt"
+USER vitalij vitalij
 RUN id
 ASYNC_RUN id && ls
 ASYNC_GROUP_START
