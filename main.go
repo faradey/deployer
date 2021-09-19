@@ -20,11 +20,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	defConf := commands.DefaultCommandStruct{}
 	host := ""
 	port := ""
 	urlPath := ""
-	shell := "bash"
+	defConf.Shell = "bash"
 
 	config = parser.GetConfig(dir)
 	for _, row := range config {
@@ -37,15 +37,15 @@ func main() {
 			urlPath = strings.TrimSpace(row.Data)
 		case "shell":
 			if strings.TrimSpace(row.Data) != "" {
-				shell = strings.TrimSpace(row.Data)
+				defConf.Shell = strings.TrimSpace(row.Data)
 			}
 		}
 	}
 
 	var usr *user.User
 	usr, _ = user.Current()
-	var uid uint64
-	uid, err = strconv.ParseUint(usr.Uid, 10, 32)
+
+	defConf.Uid, err = strconv.ParseUint(usr.Uid, 10, 32)
 	if err != nil {
 		panic("An error occured while getting the user id by name " + usr.Username)
 	}
@@ -57,13 +57,13 @@ func main() {
 	if err != nil {
 		panic("For the user named " + usr.Username + ", it was not possible to get the group")
 	}
-	var gid uint64
-	gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
+
+	defConf.Gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
 	if err != nil {
 		panic("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
 	}
-	countTry := 1
-	cd := ""
+	defConf.Try = 1
+	defConf.Cd = ""
 
 	http.HandleFunc(urlPath, func(w http.ResponseWriter, r *http.Request) {
 		output := new(responser.ResponseStruct)
@@ -73,12 +73,12 @@ func main() {
 		asyncGroup := false
 		countRunCommands := 0
 
-		for _, row := range config {
-			commandAttributes := commands.GetAttributesStruct()
-			commandAttributes.Shell = shell
+		commandDefConf := defConf
 
+		for _, row := range config {
 			rowData := strings.TrimSpace(row.Data)
-			switch strings.ToLower(row.Name) {
+			optionName := strings.ToLower(row.Name)
+			switch optionName {
 			case "user":
 				userData := strings.SplitN(rowData, " ", 2)
 				if len(userData) > 0 {
@@ -90,7 +90,7 @@ func main() {
 							output.SendError(w)
 							return
 						}
-						uid, err = strconv.ParseUint(usr.Uid, 10, 32)
+						commandDefConf.Uid, err = strconv.ParseUint(usr.Uid, 10, 32)
 						if err != nil {
 							output.AddMessage("An error occured while getting the user id by name " + userName)
 							output.SendError(w)
@@ -106,7 +106,7 @@ func main() {
 									output.SendError(w)
 									return
 								}
-								gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
+								commandDefConf.Gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
 								if err != nil {
 									output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
 									output.SendError(w)
@@ -117,40 +117,33 @@ func main() {
 					}
 				}
 			case "try":
-				countTry, err = strconv.Atoi(rowData)
+				commandDefConf.Try, err = strconv.Atoi(rowData)
 				if err != nil {
 					output.AddMessage("Option TRY is specified incorrectly")
 					output.SendError(w)
 					return
 				}
 			case "cd":
-				cd = rowData
+				commandDefConf.Cd = rowData
 			case "async_group_start":
 				asyncGroup = true
 				commander.CreateAsyncGroup()
 			case "async_group_end":
 				asyncGroup = false
 				commander.RunAsyncCommands()
-			case "run":
+			case "run", "async_run":
 				if rowData != "" {
 					countRunCommands++
+					commandAttributes := commands.GetAttributesStruct()
 					commandAttributes.Command = rowData
-					commandAttributes.Try = countTry
-					commandAttributes.Cd = cd
-					commandAttributes.Uid = uid
-					commandAttributes.Gid = gid
-					commander.Runner(commandAttributes, asyncGroup)
-				}
-			case "async_run":
-				if rowData != "" {
-					countRunCommands++
-					commandAttributes.Command = rowData
-					commandAttributes.Async = true
-					commandAttributes.Try = countTry
-					commandAttributes.Cd = cd
-					commandAttributes.Uid = uid
-					commandAttributes.Gid = gid
-					commander.Runner(commandAttributes, false)
+					commandAttributes.DefaultCommandStruct = commandDefConf
+					localAsyncGroup := asyncGroup
+					if optionName == "async_run" {
+						commandAttributes.Async = true
+						localAsyncGroup = false
+					}
+
+					commander.Runner(commandAttributes, localAsyncGroup)
 				}
 			}
 		}

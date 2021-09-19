@@ -2,13 +2,11 @@ HOST
 PORT 8083
 PATH /deploy/123456789/abcdefg
 SHELL bash
-USER vitalij vitalij
+USER root root
 CD .
-TRY 1
+TRY 8
 RUN echo "Hello world!"
 USER root root
-ASYNC_RUN find ~/ -type f -name "*d.txt"
-USER vitalij vitalij
 RUN id
 ASYNC_RUN id && ls
 ASYNC_GROUP_START

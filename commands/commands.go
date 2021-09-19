@@ -17,16 +17,20 @@ type Commander struct {
 	Channel       chan bool
 }
 
+type DefaultCommandStruct struct {
+	Uid   uint64
+	Gid   uint64
+	Shell string
+	Try   int
+	Cd    string
+}
+
 type CommandStruct struct {
 	Command string
-	Uid     uint64
-	Gid     uint64
-	Try     int
-	Shell   string
-	Cd      string
 	Async   bool
-	tried   int
-	result  bool
+	DefaultCommandStruct
+	tried  int
+	result bool
 }
 
 type AsyncCommandsStruct struct {
@@ -74,7 +78,7 @@ func (t *Commander) CreateAsyncGroup() {
 }
 
 func (t *Commander) run(command *CommandStruct) bool {
-	if command.tried == command.Try {
+	if command.tried == command.Try || command.result {
 		t.Channel <- true
 		return command.result
 	}
