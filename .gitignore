@@ -6,7 +6,7 @@
 !/responser
 !/responser/responser.go
 !/parser
-!/parser/config.go
+!/parser/*
 !/commands
 !/commands/commands.go
 !/server
