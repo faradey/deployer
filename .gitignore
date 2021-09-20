@@ -13,4 +13,5 @@
 !/server/*
 !/deployer-config.sample
 !deployer
-
+!/test_data
+!/test_data/*

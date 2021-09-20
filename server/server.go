@@ -25,7 +25,7 @@ type MainConfigStruct struct {
 
 func StartServer() {
 	defConf := commands.DefaultCommandStruct{}
-	mainConfig := GetMainConfig()
+	mainConfig := GetMainConfig(os.Args[0])
 	defConf.Shell = mainConfig.Shell
 	var usr *user.User
 	usr, _ = user.Current()
@@ -159,12 +159,12 @@ func getDir(arg0 string) string {
 		log.Fatal(err)
 	}
 
-	return dir
+	return strings.TrimRight(dir, "/")
 }
 
-func GetMainConfig() MainConfigStruct {
+func GetMainConfig(arg0 string) MainConfigStruct {
 	mainConfig := MainConfigStruct{}
-	mainConfig.Dir = getDir(os.Args[0])
+	mainConfig.Dir = getDir(arg0)
 	mainConfig.Host = ""
 	mainConfig.Port = ""
 	mainConfig.UrlPath = ""
