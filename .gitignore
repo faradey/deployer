@@ -4,11 +4,11 @@
 !/go.sum
 !/main.go
 !/responser
-!/responser/responser.go
+!/responser/*
 !/parser
 !/parser/*
 !/commands
-!/commands/commands.go
+!/commands/*
 !/server
 !/server/*
 !/deployer-config.sample
