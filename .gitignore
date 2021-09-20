@@ -10,7 +10,7 @@
 !/commands
 !/commands/commands.go
 !/server
-!/server/server.go
+!/server/*
 !/deployer-config.sample
 !deployer
 
