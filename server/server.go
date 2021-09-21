@@ -50,7 +50,7 @@ func StartServer() {
 	defConf.Try = 1
 	defConf.Cd = ""
 
-	http.HandleFunc(mainConfig.UrlPath, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/"+strings.Trim(mainConfig.UrlPath, "/"), func(w http.ResponseWriter, r *http.Request) {
 		output := new(responser.ResponseStruct)
 		commander := new(commands.Commander)
 		commander.Output = output
