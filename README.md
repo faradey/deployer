@@ -13,7 +13,7 @@ git clone https://github.com/faradey/deployer.git
     * Start the server with the command ./deployer
     
 3. Usage
-   * Configure an action that will make an http request for your domain and PORT, the PATH specified in the deployer-config
+   * Configure an action that will make an http request for your domain and PORT, PATH specified in the deployer-config
    ```
    Example URL
    http://example.com:8083/deploy/123456789/abcdefg
