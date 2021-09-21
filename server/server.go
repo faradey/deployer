@@ -51,7 +51,18 @@ func StartServer() {
 	defConf.Cd = ""
 
 	http.HandleFunc("/"+strings.Trim(mainConfig.UrlPath, "/"), func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				if err == "requesttheend" {
+					return
+				} else {
+					panic(err)
+				}
+			}
+		}()
+
 		output := new(responser.ResponseStruct)
+		output.W = w
 		commander := new(commands.Commander)
 		commander.Output = output
 		commander.Channel = make(chan bool, len(config))
@@ -60,52 +71,20 @@ func StartServer() {
 
 		commandDefConf := defConf
 
-		for _, row := range config {
+		configForRequest := parser.GetConfig(mainConfig.Dir)
+		for _, row := range configForRequest {
 			rowData := strings.TrimSpace(row.Data)
 			optionName := strings.ToLower(row.Name)
 			switch optionName {
 			case "user":
-				userData := strings.SplitN(rowData, " ", 2)
-				if len(userData) > 0 {
-					userName := userData[0]
-					if userName != "" {
-						usr, err = user.Lookup(userName)
-						if err != nil {
-							output.AddMessage("The user with the name " + userName + " is not in the system")
-							output.SendError(w)
-							return
-						}
-						commandDefConf.Uid, err = strconv.ParseUint(usr.Uid, 10, 32)
-						if err != nil {
-							output.AddMessage("An error occured while getting the user id by name " + userName)
-							output.SendError(w)
-							return
-						}
-
-						if len(userData) > 1 {
-							userGroupName := strings.TrimSpace(userData[1])
-							if userGroupName != "" {
-								userGroup, err := user.LookupGroup(userGroupName)
-								if err != nil {
-									output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group")
-									output.SendError(w)
-									return
-								}
-								commandDefConf.Gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
-								if err != nil {
-									output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
-									output.SendError(w)
-									return
-								}
-							}
-						}
-					}
+				if !getUserUG(row.Data, &commandDefConf, output) {
+					return
 				}
 			case "try":
 				commandDefConf.Try, err = strconv.Atoi(rowData)
 				if err != nil {
 					output.AddMessage("Option TRY is specified incorrectly")
-					output.SendError(w)
+					output.SendError()
 					return
 				}
 			case "cd":
@@ -147,7 +126,7 @@ func StartServer() {
 			}
 		}
 
-		output.Finish(w)
+		output.Finish()
 	})
 	log.Println("Start Listener Host: " + mainConfig.Host + " and Port: " + mainConfig.Port)
 	log.Fatal(http.ListenAndServe(mainConfig.Host+":"+mainConfig.Port, nil))
@@ -187,4 +166,43 @@ func GetMainConfig(arg0 string) MainConfigStruct {
 	}
 
 	return mainConfig
+}
+
+func getUserUG(rowData string, commandDefConf *commands.DefaultCommandStruct, output *responser.ResponseStruct) bool {
+	userData := strings.SplitN(rowData, " ", 2)
+	if len(userData) > 0 && userData[0] != "" {
+		userName := userData[0]
+		usr, err := user.Lookup(userName)
+		if err != nil {
+			output.AddMessage("The user with the name " + userName + " is not in the system")
+			output.SendError()
+			return false
+		}
+		commandDefConf.Uid, err = strconv.ParseUint(usr.Uid, 10, 32)
+		if err != nil {
+			output.AddMessage("An error occured while getting the user id by name " + userName)
+			output.SendError()
+			return false
+		}
+
+		if len(userData) > 1 {
+			userGroupName := strings.TrimSpace(userData[1])
+			if userGroupName != "" {
+				userGroup, err := user.LookupGroup(userGroupName)
+				if err != nil {
+					output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group " + userGroupName)
+					output.SendError()
+					return false
+				}
+				commandDefConf.Gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
+				if err != nil {
+					output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
+					output.SendError()
+					return false
+				}
+			}
+		}
+	}
+
+	return true
 }

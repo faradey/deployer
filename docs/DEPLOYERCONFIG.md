@@ -12,3 +12,8 @@
 * `ASYNC_RUN` - *optional*. This option runs the specified command asynchronously.
 * `ASYNC_GROUP_START` - *optional*. A pointer to the beginning of a group of commands that will be executed asynchronously, but the group itself will be executed synchronously in the command queue. This option can be specified multiple times.
 * `ASYNC_GROUP_END` - *condition*. Pointer to the end of a group of asynchronous commands. This option can be specified multiple times.
+
+### Additional features
+
+#### Changing these options requires a server restart
+`HOST` `PORT` `PATH` `SHELL`
