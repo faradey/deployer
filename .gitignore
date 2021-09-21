@@ -15,3 +15,5 @@
 !deployer
 !/test_data
 !/test_data/*
+!/docs
+!/docs/*
