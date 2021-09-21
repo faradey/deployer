@@ -77,15 +77,12 @@ func StartServer() {
 			optionName := strings.ToLower(row.Name)
 			switch optionName {
 			case "user":
-				if !getUserUG(row.Data, &commandDefConf, output) {
-					return
-				}
+				getUserUG(row.Data, &commandDefConf, output)
 			case "try":
 				commandDefConf.Try, err = strconv.Atoi(rowData)
 				if err != nil {
 					output.AddMessage("Option TRY is specified incorrectly")
 					output.SendError()
-					return
 				}
 			case "cd":
 				commandDefConf.Cd = rowData
@@ -168,7 +165,7 @@ func GetMainConfig(arg0 string) MainConfigStruct {
 	return mainConfig
 }
 
-func getUserUG(rowData string, commandDefConf *commands.DefaultCommandStruct, output *responser.ResponseStruct) bool {
+func getUserUG(rowData string, commandDefConf *commands.DefaultCommandStruct, output *responser.ResponseStruct) {
 	userData := strings.SplitN(rowData, " ", 2)
 	if len(userData) > 0 && userData[0] != "" {
 		userName := userData[0]
@@ -176,13 +173,11 @@ func getUserUG(rowData string, commandDefConf *commands.DefaultCommandStruct, ou
 		if err != nil {
 			output.AddMessage("The user with the name " + userName + " is not in the system")
 			output.SendError()
-			return false
 		}
 		commandDefConf.Uid, err = strconv.ParseUint(usr.Uid, 10, 32)
 		if err != nil {
 			output.AddMessage("An error occured while getting the user id by name " + userName)
 			output.SendError()
-			return false
 		}
 
 		if len(userData) > 1 {
@@ -192,17 +187,13 @@ func getUserUG(rowData string, commandDefConf *commands.DefaultCommandStruct, ou
 				if err != nil {
 					output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group " + userGroupName)
 					output.SendError()
-					return false
 				}
 				commandDefConf.Gid, err = strconv.ParseUint(userGroup.Gid, 10, 32)
 				if err != nil {
 					output.AddMessage("For the user named " + usr.Username + ", it was not possible to get the group in uint64")
 					output.SendError()
-					return false
 				}
 			}
 		}
 	}
-
-	return true
 }
