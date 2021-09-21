@@ -12,7 +12,7 @@ git clone https://github.com/faradey/deployer.git
     * Fill in the `deployer-config` file with the required options and attributes. [Description of options and attributes](./docs/DEPLOYERCONFIG.md)
     * Start the server with the command `./deployer` as root or using sudo
     
-3. Usage
+## Usage
    * Configure an action that will make an http request for your domain and `PORT`, `PATH` specified in the `deployer-config`
    ```
    Example URL
