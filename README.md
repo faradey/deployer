@@ -1,6 +1,16 @@
 # deployer
 Deploy your project on the server
 
+## Description
+This little program is designed to help you deploy a project to your server.
+The program is implemented as an http server that listens for requests to a specific port and path. Upon receiving the request, the program reads the configuration file and executes all the commands specified in it.
+
+### Key Features
+* Running asynchronous commands.
+* Running asynchronous groups of commands.
+* Each command or group of commands can be run from a specific user on the system.
+* Each command or group of commands can be run in a specific directory.
+
 ## Installation
 1. Clone this repo
 ```
