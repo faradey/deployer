@@ -41,7 +41,7 @@ func getLines(dir string) []string {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.TrimSpace(line[:1]) != "#" {
+		if line != "" && strings.TrimSpace(line[:1]) != "#" {
 			rl := len(rows)
 			if rl > 0 && rows[rl-1][len(rows[rl-1])-1:] == "\\" {
 				rows[rl-1] = rows[rl-1][:len(rows[rl-1])-1] + line
