@@ -14,7 +14,7 @@ The program is implemented as an http server that listens for requests to a spec
 ## Installation
 1. Clone this repo
 ```
-git clone https://github.com/faradey/deployer.git
+git clone git@github.com:faradey/deployer.git
 ```
 2. Setup configuration and run server
     * Go to `deployer` folder
