@@ -31,7 +31,7 @@ git clone git@github.com:faradey/deployer.git
    * When the action is triggered, the server will accept the request and execute the commands specified in the `deployer-config`
 
 ## Donations
-If you find it useful and want to invite us for a beer, just click on the donation button. Thanks! 🍺
+If you find it useful and want to invite us for a beer, just click on the donation button. Thanks!
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/faradey)
 
