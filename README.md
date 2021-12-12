@@ -29,3 +29,15 @@ git clone git@github.com:faradey/deployer.git
    http://example.com:8083/deploy/123456789/abcdefg
    ```
    * When the action is triggered, the server will accept the request and execute the commands specified in the `deployer-config`
+
+## Donations
+If you find it useful and want to invite us for a beer, just click on the donation button. Thanks! 🍺
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/faradey)
+
+## License
+
+* [The MIT License](https://opensource.org/licenses/MIT)
+
+## Copyright
+(c) faradey
